@@ -1,13 +1,14 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let loop;
+// ===== СТАН ГРИ =====
 let gameOver = false;
 let frame = 0;
 let score = 0;
 let obstacles = [];
+let loop;
 
-// Гравець
+// ===== ГРАВЕЦЬ =====
 const player = {
   x: 50,
   y: 150,
@@ -19,6 +20,7 @@ const player = {
   grounded: true
 };
 
+// ===== RESET =====
 function resetGame() {
   gameOver = false;
   frame = 0;
@@ -30,21 +32,23 @@ function resetGame() {
   loop = requestAnimationFrame(update);
 }
 
+// ===== ПЕРЕШКОДИ =====
 function spawnObstacle() {
   obstacles.push({
     x: canvas.width,
     y: 160,
     width: 20,
-    height: 40
+    height: 40,
+    passed: false
   });
 }
 
+// ===== GAME LOOP =====
 function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-
   frame++;
 
-  // Гравітація
+  // --- фізика гравця ---
   player.velocityY += player.gravity;
   player.y += player.velocityY;
 
@@ -54,18 +58,19 @@ function update() {
     player.grounded = true;
   }
 
-  // Гравець
+  // --- гравець ---
   ctx.fillStyle = "#000";
   ctx.fillRect(player.x, player.y, player.width, player.height);
 
-  // Перешкоди
+  // --- генерація перешкод ---
   if (frame % 90 === 0) spawnObstacle();
 
+  // --- перешкоди ---
   obstacles.forEach(obs => {
     obs.x -= 5;
     ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
 
-    // Колізія
+    // колізія
     if (
       player.x < obs.x + obs.width &&
       player.x + player.width > obs.x &&
@@ -74,8 +79,15 @@ function update() {
     ) {
       endGame();
     }
+
+    // очки
+    if (!obs.passed && obs.x + obs.width < player.x) {
+      obs.passed = true;
+      score++;
+    }
   });
 
+  // чистка
   obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
 
   drawScore();
@@ -85,6 +97,7 @@ function update() {
   }
 }
 
+// ===== GAME OVER =====
 function endGame() {
   gameOver = true;
   ctx.fillStyle = "#000";
@@ -94,13 +107,14 @@ function endGame() {
   ctx.fillText("Press SPACE to restart", 300, 130);
 }
 
+// ===== SCORE =====
 function drawScore() {
   ctx.fillStyle = "#000";
   ctx.font = "16px monospace";
   ctx.fillText(`Score: ${score}`, 10, 20);
 }
 
-// Управління
+// ===== INPUT =====
 document.addEventListener("keydown", e => {
   if (e.code === "Space") {
     if (gameOver) {
@@ -112,5 +126,5 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// Старт
+// ===== START =====
 resetGame();
