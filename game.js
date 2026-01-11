@@ -2,16 +2,36 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 // ===== НАЛАШТУВАННЯ =====
-const SCALE = 2,5;
+const SCALE = 2.5;
 const GROUND_Y = 150;
 
-// ===== SVG =====
-const playerImg = new Image();
-playerImg.src = "images/player.svg";
-let spriteLoaded = false;
+// ===== ЗОБРАЖЕННЯ =====
+const bgImg = new Image();
+bgImg.src = "images/background.png";
 
-playerImg.onload = () => {
-  spriteLoaded = true;
+const treesImg = new Image();
+treesImg.src = "images/trees.png";
+
+const platformImg = new Image();
+platformImg.src = "images/platform.png";
+
+const playerImg = new Image();
+playerImg.src = "images/player.png";
+
+const stoneImg = new Image();
+stoneImg.src = "images/stone.png";
+
+let spriteLoaded = false;
+let stoneLoaded = false;
+
+[playerImg, bgImg, treesImg, platformImg].forEach(img => {
+  img.onload = () => {
+    if (img === playerImg) spriteLoaded = true;
+  };
+});
+
+stoneImg.onload = () => {
+  stoneLoaded = true;
 };
 
 // ===== СТАНИ =====
@@ -34,18 +54,9 @@ const player = {
   grounded: true
 };
 
-// ===== RESET =====
-function resetGame() {
-  gameOver = false;
-  paused = false;
-  frame = 0;
-  score = 0;
-  obstacles = [];
-  player.y = GROUND_Y;
-  player.velocityY = 0;
-  player.grounded = true;
-  loop = requestAnimationFrame(update);
-}
+// ===== РУХОМИЙ ФОН =====
+let treesX = 0;
+const TREES_SPEED = 1.5 * SCALE;
 
 // ===== ПЕРЕШКОДИ =====
 function spawnObstacle() {
@@ -58,7 +69,20 @@ function spawnObstacle() {
   });
 }
 
-// ===== LOOP =====
+// ===== RESET ГРИ =====
+function resetGame() {
+  gameOver = false;
+  paused = false;
+  frame = 0;
+  score = 0;
+  obstacles = [];
+  player.y = GROUND_Y;
+  player.velocityY = 0;
+  player.grounded = true;
+  loop = requestAnimationFrame(update);
+}
+
+// ===== GAME LOOP =====
 function update() {
   if (paused) {
     drawPause();
@@ -69,7 +93,7 @@ function update() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   frame++;
 
-  // --- фізика ---
+  // --- фізика гравця ---
   player.velocityY += player.gravity;
   player.y += player.velocityY;
 
@@ -78,6 +102,19 @@ function update() {
     player.velocityY = 0;
     player.grounded = true;
   }
+
+  // --- рендер шару ---
+  // загальний фон
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+  // рухомі дерева
+  treesX -= TREES_SPEED;
+  if (treesX <= -canvas.width) treesX = 0;
+  ctx.drawImage(treesImg, treesX, 0, canvas.width, canvas.height);
+  ctx.drawImage(treesImg, treesX + canvas.width, 0, canvas.width, canvas.height);
+
+  // платформа
+  ctx.drawImage(platformImg, 0, GROUND_Y + 10, canvas.width, 50 * SCALE);
 
   // --- гравець ---
   if (spriteLoaded) {
@@ -91,7 +128,13 @@ function update() {
 
   obstacles.forEach(obs => {
     obs.x -= 5 * SCALE;
-    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+    // малюємо stone.png
+    if (stoneLoaded) {
+      ctx.drawImage(stoneImg, obs.x, obs.y, obs.width, obs.height);
+    } else {
+      ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    }
 
     // колізія
     if (
